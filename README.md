@@ -2,6 +2,7 @@
 # IsmaHub
 
 Hey 😺 IsmaHub is my small project currently it supports only Forsaken. However i plan to expand it on more games.
+Supports Solara and every executor thats better then it. (However idk if all the features work on solara)
 
 ## The ONLY and REAL IsmaHub loadstring is
 
