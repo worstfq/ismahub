@@ -1,0 +1,484 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/refs/heads/main/Library.lua"))()
+
+local Window = Library:CreateWindow({
+    Title = "ESP Script",
+    Footer = "v1.0.0",
+    Center = true,
+    AutoShow = true
+})
+
+local MainTab = Window:AddTab("Main", "house") -- Using "house" icon
+local GensMiscTab = Window:AddTab("Gens/Misc", "settings") -- Using "settings" icon
+local AimbotTab = Window:AddTab("Aimbot", "target") -- Using "target" icon
+
+local LeftGroupbox = MainTab:AddLeftGroupbox("Stamina Settings")
+local RightGroupbox = MainTab:AddRightGroupbox("ESP")
+
+local GensGroupbox = GensMiscTab:AddLeftGroupbox("Generators")
+local MiscGroupbox = GensMiscTab:AddRightGroupbox("Misc")
+
+-- Added Aimbot Groupboxes
+local KillerAimbotGroupbox = AimbotTab:AddLeftGroupbox("Killer Aimbot")
+local SurvivorAimbotGroupbox = AimbotTab:AddRightGroupbox("Survivor Aimbot")
+
+-- Configuration
+local killerHighlightColor = Color3.new(1, 0, 0)
+local survivorHighlightColor = Color3.new(0, 1, 0)
+local itemHighlightColor = Color3.new(0, 0, 1) -- Blue for items
+local highlightThickness = 3
+local useOutline = false
+local survivorNames = {
+    "Two Time",
+    "TwoTime",
+    "Guest 1337",
+    "Guest1337",
+    "007n7",
+    "Builderman",
+    "Dusekkar",
+    "Taph",
+    "Chance",
+    "Elliot",
+    "Shedletsky",
+    "Noob"
+}
+local killerNames = {"1x1x1x1", "John Doe", "JohnDoe", "c00lkidd"}
+local itemNames = {"Medkit", "BloxyCola"} -- Add more item names as needed
+
+local connection
+
+local chanceaim = false
+
+local chanceaimbotLoop
+
+local jasonaimbotloop
+
+local genshouldloop = false
+
+local genactive = false
+
+local aimbot1x1loop = nil
+local johnloop = nil
+local guestloop = nil
+local shedloop = nil
+
+local player = game.Players.LocalPlayer
+
+local aimbot1x1 = false
+
+local johnaim = false
+
+local connection
+
+local jasonaim = false
+
+local shedaim = false
+
+local guestaim = false
+
+-- Function to highlight an object
+local function highlightObject(object, color)
+    if not object then return end
+    local existingHighlight = object:FindFirstChild("ObjectHighlight")
+    if existingHighlight then
+        existingHighlight:Destroy()
+    end
+    local highlight = Instance.new("Highlight", object)
+    highlight.Name = "ObjectHighlight"
+    highlight.FillColor = color
+    highlight.OutlineColor = color
+    highlight.FillTransparency = 0.5
+    highlight.Enabled = true
+    if useOutline then
+        highlight.FillTransparency = 1
+    else
+        highlight.OutlineTransparency = 0
+    end
+end
+
+local VirtualBallsManager = game:GetService('VirtualInputManager')
+
+
+local function Do1x1x1x1Popups() -- creds to ivan while skidding applesaken thanks
+    while true do
+        if Do1x1PopupsLoop then
+            local player = game:GetService("Players").LocalPlayer
+            local popups = player.PlayerGui.TemporaryUI:GetChildren()
+
+            for _, i in ipairs(popups) do
+                if i.Name == "1x1x1x1Popup" then
+                    local centerX = i.AbsolutePosition.X + (i.AbsoluteSize.X / 2)
+                    local centerY = i.AbsolutePosition.Y + (i.AbsoluteSize.Y / 2)
+
+                    VirtualBallsManager:SendMouseButtonEvent(centerX, centerY, Enum.UserInputType.MouseButton1.Value, true, player.PlayerGui, 1)
+                    VirtualBallsManager:SendMouseButtonEvent(centerX, centerY, Enum.UserInputType.MouseButton1.Value, false, player.PlayerGui, 1)
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end
+
+-- Function to clear highlight from an object
+local function clearObjectHighlight(object)
+    if not object then return end
+    local existingHighlight = object:FindFirstChild("ObjectHighlight")
+    if existingHighlight then
+        existingHighlight:Destroy()
+    end
+end
+
+-- Function to highlight a player
+local function highlightPlayer(player, color)
+    if not player or not player.Character or not player.Character:FindFirstChild("Humanoid") then
+        return
+    end
+    highlightObject(player.Character, color)
+end
+
+-- Function to clear highlight
+local function clearHighlight(player)
+    if not player or not player.Character then
+        return
+    end
+    clearObjectHighlight(player.Character)
+end
+
+-- Function to enable killer ESP
+local function enableKillerESP()
+    print("Killer ESP Enabled")
+    for _, player in pairs(game.Players:GetPlayers()) do
+        if player.Character then
+            local characterName = player.Character.Name
+            for _, killerName in ipairs(killerNames) do
+                if characterName == killerName then
+                    highlightPlayer(player, killerHighlightColor)
+                    break
+                end
+            end
+        end
+    end
+end
+
+-- Function to disable killer ESP
+local function disableKillerESP()
+    print("Killer ESP Disabled")
+    for _, player in pairs(game.Players:GetPlayers()) do
+        clearHighlight(player)
+    end
+end
+
+-- Function to enable survivor ESP
+local function enableSurvivorESP()
+    print("Survivor ESP Enabled")
+    for _, player in pairs(game.Players:GetPlayers()) do
+        if player.Character then
+            local characterName = player.Character.Name
+            local isSurvivor = false
+            for _, survivorName in ipairs(survivorNames) do
+                if characterName == survivorName then
+                    isSurvivor = true
+                    break
+                end
+            end
+            if isSurvivor then
+                highlightPlayer(player, survivorHighlightColor)
+            end
+        end
+    end
+end
+
+-- Function to disable survivor ESP
+local function disableSurvivorESP()
+    print("Survivor ESP Disabled")
+    for _, player in pairs(game.Players:GetPlayers()) do
+        clearHighlight(player)
+    end
+end
+
+-- Function to enable item ESP
+local function enableItemESP()
+    print("Item ESP Enabled")
+    for _, item in pairs(game.Workspace.Map.Ingame:GetChildren()) do
+        if item:IsA("Tool") then
+            for _, itemName in ipairs(itemNames) do
+                if item.Name == itemName then
+                    highlightObject(item, itemHighlightColor)
+                    break
+                end
+            end
+        end
+    end
+
+    game.Workspace.Map.Ingame.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") then
+            for _, itemName in ipairs(itemNames) do
+                if child.Name == itemName then
+                    highlightObject(child, itemHighlightColor)
+                    break
+                end
+            end
+        end
+    end)
+
+    game.Workspace.Map.Ingame.ChildRemoved:Connect(function(child)
+        if child:IsA("Tool") then
+            clearObjectHighlight(child)
+        end
+    end)
+end
+
+-- Function to disable item ESP
+local function disableItemESP()
+    print("Item ESP Disabled")
+    for _, item in pairs(game.Workspace.Map.Ingame:GetChildren()) do
+        if item:IsA("Tool") then
+            clearObjectHighlight(item)
+        end
+    end
+    -- No need to disconnect ChildAdded/ChildRemoved as the toggle handles the active state
+end
+
+-- Survivor Toggle
+local SurvivorToggle = RightGroupbox:AddToggle("SurvivorESP", {
+    Text = "Enable Survivor ESP",
+    Default = false,
+    Tooltip = "Highlights survivors",
+    Callback = function(Value)
+        if Value then
+            enableSurvivorESP()
+        else
+            disableSurvivorESP()
+        end
+    end
+})
+
+-- Killer Toggle
+local KillerToggle = RightGroupbox:AddToggle("KillerESP", {
+    Text = "Enable Killer ESP",
+    Default = false,
+    Tooltip = "Highlights the killer",
+    Callback = function(Value)
+        if Value then
+            enableKillerESP()
+        else
+            disableKillerESP()
+        end
+    end
+})
+
+-- Item ESP Toggle (moved to the end)
+local ItemToggle = RightGroupbox:AddToggle("ItemESP", {
+    Text = "Enable Item ESP",
+    Default = false,
+    Tooltip = "Highlights interactable items",
+    Callback = function(Value)
+        if Value then
+            enableItemESP()
+        else
+            disableItemESP()
+        end
+    end
+})
+
+-- Stamina Settings
+local Sprinting = game:GetService("ReplicatedStorage"):WaitForChild("Systems"):WaitForChild("Character"):WaitForChild("Game"):WaitForChild("Sprinting")
+local m = require(Sprinting)
+
+local MaxStaminaPicker = LeftGroupbox:AddSlider("MaxStamina", {
+    Text = "Max Stamina",
+    Default = 100,
+    Min = 0,
+    Max = 300,
+    Rounding = 0,
+    Callback = function(Value)
+        print("Max Stamina set to:", Value)
+        if m and m.MaxStamina then
+            m.MaxStamina = Value
+        end
+    end
+})
+
+local StaminaDepletionPicker = LeftGroupbox:AddSlider("StaminaDepletion", {
+    Text = "Stamina Depletion",
+    Default = 10,
+    Min = 0,
+    Max = 50,
+    Rounding = 1,
+    Callback = function(Value)
+        print("Stamina Depletion set to:", Value)
+        if m and m.StaminaLoss then
+            m.StaminaLoss = Value
+        end
+    end
+})
+
+local StaminaRegenerationPicker = LeftGroupbox:AddSlider("StaminaRegeneration", {
+    Text = "Stamina Regeneration",
+    Default = 20,
+    Min = 0,
+    Max = 50,
+    Rounding = 1,
+    Callback = function(Value)
+        print("Stamina Regeneration set to:", Value)
+        if m and m.StaminaGain then
+            m.StaminaGain = Value
+        end
+    end
+})
+
+-- Jumping Toggle
+local JumpToggle = MiscGroupbox:AddToggle("JumpToggle", {
+    Text = "Enable Jumping",
+    Default = false,
+    Tooltip = "Allows both Killers and Survivors to jump",
+    Callback = function(Value)
+        if Value then
+            print("Jumping Enabled")
+            if game.Players.LocalPlayer and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+                game.Players.LocalPlayer.Character.Humanoid.JumpPower = 50
+            end
+            JumpPowerSlider.Disabled = false
+        else
+            print("Jumping Disabled")
+            if game.Players.LocalPlayer and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+                game.Players.LocalPlayer.Character.Humanoid.JumpPower = 0
+            end
+            JumpPowerSlider.Disabled = true
+        end
+    end
+})
+
+-- Jump Power Slider
+local JumpPowerSlider = MiscGroupbox:AddSlider("JumpPower", {
+    Text = "Jump Power",
+    Default = 50,
+    Min = 0,
+    Max = 500,
+    Rounding = 0,
+    Callback = function(Value)
+        print("Jump Power set to: ", Value)
+        if JumpToggle.Value and game.Players.LocalPlayer and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+            game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
+        end
+    end
+})
+
+local popupsolver = MiscGroupbox:AddToggle("AutoDo1x1x1x1Popups", {
+    Text = "Auto do 1x1x1x1 popups",
+    Default = false,
+    Tooltip = "Automatically does 1x1x1x1 popups",
+    Callback = function(state)
+        Do1x1PopupsLoop = state and task.spawn(Do1x1x1x1Popups)
+    end,
+})
+
+
+
+-- Generator Functions and UI
+local function toggleHighlightGen(state)
+    local function applyGeneratorHighlight(generator)
+        if generator.Name == "Generator" then
+            local existingHighlight = generator:FindFirstChild("GeneratorHighlight")
+            local progress = generator:FindFirstChild("Progress")
+
+            if state then
+                if not existingHighlight then
+                    local genhighlight = Instance.new("Highlight")
+                    genhighlight.Parent = generator
+                    genhighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    genhighlight.Name = "GeneratorHighlight"
+                end
+            else
+                if existingHighlight then
+                    existingHighlight:Destroy()
+                end
+                return
+            end
+
+            if progress then
+                if progress.Value == 100 then
+                    local highlight = generator:FindFirstChild("GeneratorHighlight")
+                    if highlight then
+                        highlight:Destroy()
+                    end
+                    return
+                end
+
+                progress:GetPropertyChangedSignal("Value"):Connect(function()
+                    if progress.Value == 100 then
+                        local highlight = generator:FindFirstChild("GeneratorHighlight")
+                        if highlight then
+                            highlight:Destroy()
+                        end
+                    elseif state and not generator:FindFirstChild("GeneratorHighlight") then
+                        local genhighlight = Instance.new("Highlight")
+                        genhighlight.Parent = generator
+                        genhighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        genhighlight.Name = "GeneratorHighlight"
+                    end
+                end)
+            end
+        end
+    end
+
+    for _, v in pairs(game.Workspace.Map.Ingame.Map:GetChildren()) do
+        applyGeneratorHighlight(v)
+    end
+
+    game.Workspace.Map.Ingame.Map.ChildAdded:Connect(function(child)
+        applyGeneratorHighlight(child)
+    end)
+end
+
+-- Function to instantly solve a generator
+local function instantsolvegen()
+    for i, v in pairs(game.Workspace.Map.Ingame.Map:GetChildren()) do
+        if v.name == "Generator" then
+            local num = 0
+            repeat
+                num += 1
+                v:WaitForChild("Remotes"):WaitForChild("RE"):FireServer()
+            until num == 4
+        end
+    end
+end
+
+-- Function to solve a generator (normal speed)
+local function solvegen()
+    for i, v in pairs(game.Workspace.Map.Ingame.Map:GetChildren()) do
+        if v.name == "Generator" then
+            v:WaitForChild("Remotes"):WaitForChild("RE"):FireServer()
+        end
+    end
+end
+
+-- Function to instantly solve all generators in "Generators" folder
+local function instantsolvegenhell()
+    for i, v in pairs(game.Workspace.Map.Ingame.Map.Generators:GetChildren()) do
+        if v:IsA("Model") then
+            local num = 0
+            repeat
+                num += 1
+                v:WaitForChild("Remotes"):WaitForChild("RE"):FireServer()
+            until num == 4
+        end
+    end
+end
+
+
+
+-- Add a toggle to highlight generators
+local highlightGenToggle = GensGroupbox:AddToggle("HighlightGenerators", {
+    Text = "Enable Generator ESP",
+    Default = false,
+    Tooltip = "Highlights all generators",
+    Callback = toggleHighlightGen,
+})
+
+-- Add buttons for solving generators
+local solveGenButton = GensGroupbox:AddButton("Solve Generator", solvegen, "Solves the one puzzle.")
+local instantSolveGenButton = GensGroupbox:AddButton("Insta-Solve Generator", instantsolvegen, "Instantly solves the generator.")
+local instantSolveGenHellButton = GensGroupbox:AddButton("Insta-Solve All", instantsolvegenhell, "Instantly solves all generators.")
+
+
+Library:Toggle(true)
