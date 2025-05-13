@@ -19,3 +19,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/worstfq/ismahub/refs/
  - Enable Jumping
  - Auto do 1x4 popups
  - EXPECT FUTURE UPDATES LIKE AIMBOT
+
+## Support
+
+For support or suggestions join discord. https://discord.gg/J8cmkd4vma
